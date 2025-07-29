@@ -44,14 +44,3 @@ master 브랜치에서 작업 후 push는 둘다 막혀있음(해도 커밋&푸�
 | 🗃 | `:card_file_box:` | 데이버베이스 관련 수정 | Perform database related changes. |
 | 🔊 | `:loud_sound:` | 로그 추가/수정 | Add or update logs. |
 | 🙈 | `:see_no_evil:` | .gitignore 추가/수정 | Add or update a .gitignore file. |
-
----
-출처: https://inpa.tistory.com/entry/GIT-⚡️-Gitmoji-사용법-Gitmoji-cli [Inpa Dev 👨‍💻:티스토리]
-
-Pull Request 설정 브랜치 사용법
-모두 각자의 브랜치에서 작업
-master 브랜치에서 작업 후 push는 둘다 막혀있음(해도 커밋&푸시 불가)
-각자 브랜치에서 작업 후 master 브랜치에 merge할 때 github 웹페이지에서 pullrequest 작성 하면됌.
--> 작성 시에 어떤 파일이 추가됐고 어떤부분 수정한건지 적어주기
--> pull request 수락돼면 merge 성공
--> 수락되기전까지는 대기상태
