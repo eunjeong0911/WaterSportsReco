@@ -1,1 +1,5 @@
 README.md
+/backend/.env
+/frontend/.env
+/backend/.venv/
+/backend/__pycache__/
