@@ -26,7 +26,7 @@ VITE_KAKAO_APPKEY=your_kakao_api_key_here
 # 실행 방법
 ## 백엔드
 cd backend
-python -m venv .venv
+python3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

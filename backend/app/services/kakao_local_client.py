@@ -69,11 +69,25 @@ class KakaoLocalClient:
                         if location_key in seen_locations:
                             continue
                             
-                        # 활동 정보 추가
+                        # 활동 정보 추가 및 필드명 수정
                         place["activity"] = activity
                         place["search_keyword"] = keyword
                         place["source"] = "kakao"
                         place["collected_at"] = datetime.now().isoformat()
+                        
+                        # 스키마에 맞게 필드명 수정
+                        if "addr" in place:
+                            place["address"] = place.pop("addr")
+                        if "kakao_link" in place:
+                            place["place_url"] = place.pop("kakao_link")
+                        if "collectedAt" in place:
+                            place["collected_at"] = place.pop("collectedAt")
+                        
+                        # 누락된 필드 추가
+                        if "distance" not in place:
+                            place["distance"] = ""
+                        if "road_address" not in place:
+                            place["road_address"] = place.get("address", "")
                         
                         activity_places.append(place)
                         seen_ids.add(place["id"])
@@ -145,12 +159,15 @@ class KakaoLocalClient:
                         "activity": keyword,  # 검색한 키워드로 활동 추정
                         "category": doc["category_name"],
                         "phone": doc.get("phone", ""),
-                        "addr": doc.get("road_address_name") or doc.get("address_name", ""),
+                        "address": doc.get("address_name", ""),
+                        "road_address": doc.get("road_address_name", ""),
                         "x": float(doc["x"]),  # 경도
                         "y": float(doc["y"]),  # 위도
-                        "kakao_link": doc.get("place_url", ""),
+                        "place_url": doc.get("place_url", ""),
+                        "distance": "",  # 카카오 API에서는 거리 정보가 없으므로 빈 문자열
                         "source": "kakao",
-                        "collectedAt": None
+                        "collected_at": datetime.now().isoformat(),
+                        "search_keyword": keyword
                     }
                     places.append(place)
                     logger.info(f"  📍 {place['name']} at ({place['x']}, {place['y']})")

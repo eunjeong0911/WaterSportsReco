@@ -25,7 +25,7 @@ class PlaceResponse(BaseModel):
     place_url: str
     distance: str
     source: str
-    collected_at: str
+    collected_at: Optional[str] = None
     search_keyword: str
 
 class PlacesInRectResponse(BaseModel):
