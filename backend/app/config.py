@@ -1,10 +1,20 @@
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+# 백엔드 루트 디렉토리에서 .env 파일 찾기
+backend_root = Path(__file__).parent.parent
+env_path = backend_root / ".env"
+
+print(f"🔍 Looking for .env file at: {env_path}")
+print(f"🔍 .env file exists: {env_path.exists()}")
+
+load_dotenv(env_path)
 
 KMA_API_KEY = os.getenv("KMA_API_KEY", "")
 KHOA_API_KEY = os.getenv("KHOA_API_KEY", "")
+KAKAO_API_KEY = os.getenv("KAKAO_API_KEY", "")
+VITE_KAKAO_APPKEY = os.getenv("VITE_KAKAO_APPKEY", "")
 # 기본 개발 환경 CORS 설정
 DEFAULT_ORIGINS = [
     "http://localhost:5173",
