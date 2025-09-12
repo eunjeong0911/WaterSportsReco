@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Depends, Query, HTTPException
+from fastapi import FastAPI, Depends, Query
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
-from typing import List
+import asyncio
 from .config import ALLOWED_ORIGINS, KAKAO_API_KEY, VITE_KAKAO_APPKEY
-from .schemas import ConditionResponse, PlacesInRectResponse
 from .deps import get_http_client
-from .services.kma_client import fetch_all_stations, fetch_station_by_id
-from .services.kakao_local_client import KakaoLocalClient
+
+from .services.kma_marine_client import fetch_all_stations
+from .services.kma_surface_client import fetch_surface_obs, fetch_surface_obs_by_station, fetch_surface_station_info
+from .services.tourist_client import fetch_tourist_spots, fetch_tourist_spot_by_id
 
 app = FastAPI(title="Marine Conditions API")
 
@@ -22,122 +23,136 @@ app.add_middleware(
 print(f"🔑 KAKAO_API_KEY loaded: {'YES' if KAKAO_API_KEY else 'NO'} (length: {len(KAKAO_API_KEY) if KAKAO_API_KEY else 0})")
 print(f"🔑 VITE_KAKAO_APPKEY loaded: {'YES' if VITE_KAKAO_APPKEY else 'NO'} (length: {len(VITE_KAKAO_APPKEY) if VITE_KAKAO_APPKEY else 0})")
 
-# 카카오 로컬 API 클라이언트 초기화 (사업장 검색용)
-kakao_client = KakaoLocalClient(KAKAO_API_KEY) if KAKAO_API_KEY else None
-print(f"🏢 kakao_client initialized: {'YES' if kakao_client else 'NO'}")
-
-# 해양정보용 카카오 클라이언트 (VITE_KAKAO_APPKEY 사용)
-marine_kakao_client = KakaoLocalClient(VITE_KAKAO_APPKEY) if VITE_KAKAO_APPKEY else None
-print(f"🌊 marine_kakao_client initialized: {'YES' if marine_kakao_client else 'NO'}")
-
-
+#=============================================================================
+# 해양 관측소 API
+#=============================================================================
 @app.get("/api/stations")
 async def get_all_stations(
     tm: str | None = Query(None, description="KST 시각 YYYYMMDDHHMM"),
     client: httpx.AsyncClient = Depends(get_http_client),
 ):
-    """모든 해양 관측소 데이터를 반환"""
     try:
         stations = await fetch_all_stations(client, tm)
         return {"stations": stations, "count": len(stations)}
     except Exception as e:
         return {"error": str(e), "stations": [], "count": 0}
 
-
-@app.get("/api/conditions", response_model=ConditionResponse)
-async def get_conditions(
-    station_id: str = Query(..., description="KMA 지점 ID"),
-    tm: str | None = Query(None, description="KST 시각 YYYYMMDDHHMM"),
+#=============================================================================
+# 지상 관측 API
+#=============================================================================
+@app.get("/api/surface-obs")
+async def get_surface_observations(
+    tm1: str | None = Query(None, description="시작 시간 YYYYMMDDHHMM"),
+    tm2: str | None = Query(None, description="종료 시간 YYYYMMDDHHMM"), 
+    stn: str | None = Query(None, description="관측소 번호"),
     client: httpx.AsyncClient = Depends(get_http_client),
 ):
-    """특정 지점의 해양 조건 데이터를 반환"""
     try:
-        station_data = await fetch_station_by_id(client, station_id, tm)
-        if not station_data:
-            return ConditionResponse(
-                spotName="Unknown",
-                lat=0.0,
-                lon=0.0,
-                sst=None,
-                wave_height=None,
-                current_speed=None,
-                observed_at=None,
-                source="KMA",
-            )
-        
-        return ConditionResponse(
-            spotName=station_data.get("station_name", "Unknown"),
-            lat=station_data.get("lat", 0.0),
-            lon=station_data.get("lon", 0.0),
-            sst=station_data.get("sst"),
-            wave_height=station_data.get("wave_height"),
-            current_speed=None,
-            observed_at=station_data.get("observed_at"),
-            source="KMA",
-        )
+        observations = await fetch_surface_obs(client, tm1=tm1, tm2=tm2, stn=stn)
+        return {"observations": observations, "count": len(observations)}
     except Exception as e:
-        return ConditionResponse(
-            spotName="Error",
-            lat=0.0,
-            lon=0.0,
-            sst=None,
-            wave_height=None,
-            current_speed=None,
-            observed_at=None,
-            source="KMA",
-        )
+        return {"error": str(e), "observations": [], "count": 0}
 
 
-@app.get("/api/places/in-rect", response_model=PlacesInRectResponse)
-async def get_places_in_rect(
-    rect: str = Query(..., description="영역 좌표: minLng,minLat,maxLng,maxLat"),
-    activities: str = Query(..., description="활동 종류: scuba,kayak,beach 등 (쉼표로 구분)"),
+@app.get("/api/surface-stations")
+async def get_surface_station_info(
+    tm: str | None = Query(None, description="관측 시간 YYYYMMDDHHMM"),
     client: httpx.AsyncClient = Depends(get_http_client),
 ):
-    """지정된 사각형 영역 내의 해양레저 사업장을 검색"""
-    # 활동 목록 파싱
-    activity_list = [activity.strip() for activity in activities.split(",") if activity.strip()]
-    
-    if not activity_list:
-        raise HTTPException(status_code=400, detail="At least one activity must be specified")
-    
-    # 해양정보인 경우 marine_kakao_client 사용, 그 외는 일반 kakao_client 사용
-    if "marine_info" in activity_list:
-        client_to_use = marine_kakao_client
-        if not client_to_use:
-            raise HTTPException(status_code=500, detail="Marine Kakao API key (VITE_KAKAO_APPKEY) not configured")
-    else:
-        client_to_use = kakao_client
-        if not client_to_use:
-            raise HTTPException(status_code=500, detail="Kakao API key not configured")
-    
+    """지상 관측소 정보를 반환 (위치, 한글명 포함)"""
     try:
-        print(f"🔍 Searching places with rect: {rect}, activities: {activity_list}")
-        print(f"🔑 Using client: {'marine_kakao_client' if 'marine_info' in activity_list else 'kakao_client'}")
-        print(f"🔑 Client object: {client_to_use}")
-        print(f"🔑 Client API key (first 10 chars): {client_to_use.api_key[:10] if client_to_use and client_to_use.api_key else 'None'}...")
+        stations = await fetch_surface_station_info(client, tm)
+        return {"stations": stations, "count": len(stations)}
+    except Exception as e:
+        return {"error": str(e), "stations": [], "count": 0}
+
+
+@app.get("/api/surface-stations-with-obs")
+async def get_surface_stations_with_observations(
+    tm: str | None = Query(None, description="관측 시간 YYYYMMDDHHMM"),
+    client: httpx.AsyncClient = Depends(get_http_client),
+):
+    """
+    지상관측소 정보와 실시간 관측 데이터를 결합하여 반환
+    """
+    try:
+        # 관측소 정보와 실시간 관측 데이터를 병렬로 가져오기
+        stations_info, observations = await asyncio.gather(
+            fetch_surface_station_info(client, tm),
+            fetch_surface_obs(client, tm1=tm)
+        )
         
-        # 카카오 로컬 API로 장소 검색
-        places = await client_to_use.search_places_in_rect(
+        # station_id를 키로 하는 관측 데이터 딕셔너리 생성
+        obs_dict = {obs["station_id"]: obs for obs in observations}
+        
+        # 관측소 정보와 관측 데이터를 결합
+        combined_stations = []
+        for station in stations_info:
+            station_id = station["station_id"]
+            
+            # 기본 관측소 정보 복사
+            combined_station = station.copy()
+            
+            # 해당 관측소의 실시간 관측 데이터가 있으면 추가
+            if station_id in obs_dict:
+                obs_data = obs_dict[station_id]
+                combined_station.update({
+                    "wind_direction": obs_data.get("wind_direction"),
+                    "wind_speed": obs_data.get("wind_speed"),
+                    "gust_speed": obs_data.get("gust_speed"),
+                    "pressure": obs_data.get("pressure"),
+                    "temperature": obs_data.get("temperature"),
+                    "humidity": obs_data.get("humidity"),
+                    "wave_height": obs_data.get("wave_height"),
+                    "observed_at": obs_data.get("datetime")
+                })
+            
+            combined_stations.append(combined_station)
+        
+        print(f"✅ Combined {len(combined_stations)} surface stations with observations")
+        return {"stations": combined_stations, "count": len(combined_stations)}
+        
+    except Exception as e:
+        print(f"❌ Error combining surface stations with observations: {e}")
+        return {"error": str(e), "stations": [], "count": 0}
+
+
+#=============================================================================
+# 관광지 API
+#=============================================================================
+@app.get("/api/tourist-spots")
+async def get_tourist_spots(
+    area_code: str | None = Query(None, description="지역 코드"),
+    sigungu_code: str | None = Query(None, description="시군구 코드"),
+    content_type_id: str = Query("28", description="콘텐츠 타입 ID"),
+    num_of_rows: int = Query(476, description="한 번에 가져올 결과 수"),  # 원래대로 476개
+    page_no: int = Query(1, description="페이지 번호"),
+    client: httpx.AsyncClient = Depends(get_http_client),
+):
+    try:
+        tourist_spots = await fetch_tourist_spots(
             client=client,
-            rect=rect,
-            activities=activity_list
+            area_code=area_code,
+            sigungu_code=sigungu_code,
+            content_type_id=content_type_id,
+            num_of_rows=num_of_rows,
+            page_no=page_no
         )
-        
-        print(f"✅ Found {len(places)} places")
-        if len(places) > 0:
-            print(f"📍 First place example: {places[0].get('name', 'N/A')}")
-        
-        return PlacesInRectResponse(
-            places=places,
-            count=len(places),
-            activities=activity_list,
-            rect=rect
-        )
-        
+        return {"tourist_spots": tourist_spots, "count": len(tourist_spots)}
     except Exception as e:
-        print(f"❌ Search failed: {str(e)}")
-        print(f"❌ Error type: {type(e).__name__}")
-        import traceback
-        print(f"❌ Traceback: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        return {"error": str(e), "tourist_spots": [], "count": 0}
+
+
+#=============================================================================
+# 관광지 상세정보 API
+#=============================================================================
+@app.get("/api/tourist-spots/{content_id}")
+async def get_tourist_spot_detail(
+    content_id: str,
+    client: httpx.AsyncClient = Depends(get_http_client),
+):
+    try:
+        tourist_spot = await fetch_tourist_spot_by_id(client, content_id)
+        return tourist_spot
+    except Exception as e:
+        return {"error": str(e)}
