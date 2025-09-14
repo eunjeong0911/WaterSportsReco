@@ -22,6 +22,7 @@ export default function MapView({ onRegionSelect }) {
   const [availableRegions, setAvailableRegions] = useState(["전체"]);
   const [showMarineStations, setShowMarineStations] = useState(true);
   const [showSurfaceStations, setShowSurfaceStations] = useState(true);
+  const [surfaceMarkerCount, setSurfaceMarkerCount] = useState(0);
 
   // 관광지 데이터 가져오기
   const fetchTouristSpots = async () => {
@@ -392,139 +393,6 @@ export default function MapView({ onRegionSelect }) {
     console.log(`🌊 Successfully created ${validMarkerCount} marine markers out of ${marineStations.length} stations`);
   };
 
-  // 지상관측소 마커 표시
-  const displaySurfaceStations = () => {
-    if (!mapRef.current || !window.kakao || !showSurfaceStations) {
-      console.log("⚠️ Map, Kakao not ready, or surface stations hidden");
-      return;
-    }
-    
-    const { kakao } = window;
-    
-    // 기존 지상관측소 마커 제거
-    surfaceMarkersRef.current.forEach(marker => marker.setMap(null));
-    surfaceMarkersRef.current = [];
-    
-    console.log(`🏢 Displaying ${surfaceStations.length} surface stations`);
-    
-    let validMarkerCount = 0;
-    
-    surfaceStations.forEach((station, index) => {
-      const lat = parseFloat(station.lat);
-      const lng = parseFloat(station.lon);
-      
-      if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-        if (index < 5) {
-          console.log(`⚠️ Invalid coordinates for surface station ${index}: lat=${lat}, lng=${lng}`);
-        }
-        return;
-      }
-      
-      // 한국 영역 내 좌표인지 확인
-      if (lat < 33 || lat > 43 || lng < 124 || lng > 132) {
-        if (index < 5) {
-          console.log(`⚠️ Coordinates outside Korea for surface station ${index}: lat=${lat}, lng=${lng}`);
-        }
-        return;
-      }
-      
-      const position = new kakao.maps.LatLng(lat, lng);
-      
-      // 지상관측소 전용 마커 이미지 (빨간색 삼각형)
-      const markerImage = new kakao.maps.MarkerImage(
-        'data:image/svg+xml;base64,' + btoa(`
-          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-            <polygon points="10,2 18,16 2,16" fill="#dc3545" stroke="white" stroke-width="2"/>
-            <circle cx="10" cy="12" r="2" fill="white"/>
-          </svg>
-        `),
-        new kakao.maps.Size(20, 20),
-        {
-          offset: new kakao.maps.Point(10, 10)
-        }
-      );
-      
-      const marker = new kakao.maps.Marker({
-        position: position,
-        map: mapRef.current,
-        image: markerImage
-      });
-      
-      // 지상관측소 정보창
-      const formatValue = (value, unit = "") => {
-        if (value === null || value === undefined) return "N/A";
-        if (value === -9 || value === -9.0 || value === -99 || value === -99.0) return "결측";
-        return `${value}${unit}`;
-      };
-
-      const formatWindDirection = (windDir) => {
-        if (windDir === null || windDir === undefined || windDir === -9 || windDir === -9.0) return "결측";
-        const directions = ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", 
-                           "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"];
-        const index = Math.round(windDir / 22.5) % 16;
-        return `${directions[index]} (${windDir}°)`;
-      };
-
-      const formatDateTime = (datetime) => {
-        if (!datetime) return "N/A";
-        // YYYYMMDDHHMM 형식을 YYYY-MM-DD HH:MM 형식으로 변환
-        const year = datetime.substring(0, 4);
-        const month = datetime.substring(4, 6);
-        const day = datetime.substring(6, 8);
-        const hour = datetime.substring(8, 10);
-        const minute = datetime.substring(10, 12);
-        return `${year}-${month}-${day} ${hour}:${minute}`;
-      };
-
-      const infoContent = `
-        <div style="padding:12px;min-width:300px;max-width:350px;font-family:Arial,sans-serif;">
-          <h4 style="margin:0 0 8px 0;color:#dc3545;font-size:14px;font-weight:bold;">
-            🏢 ${station.station_name || `지상관측소 ${station.station_id}`}
-          </h4>
-          <div style="font-size:12px;line-height:1.4;color:#333;">
-            <div style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #eee;">
-              <p style="margin:2px 0;"><strong>관측소 ID:</strong> ${station.station_id}</p>
-              <p style="margin:2px 0;"><strong>영문명:</strong> ${station.station_name_en || "N/A"}</p>
-              <p style="margin:2px 0;"><strong>위치:</strong> ${lat}°N, ${lng}°E</p>
-              <p style="margin:2px 0;"><strong>관측소 코드:</strong> ${station.station_code || "N/A"}</p>
-            </div>
-            <div style="margin-bottom:6px;">
-              <p style="margin:2px 0;color:#e74c3c;"><strong>💨 풍속:</strong> ${formatValue(station.wind_speed, " m/s")}</p>
-              <p style="margin:2px 0;color:#e74c3c;"><strong>🧭 풍향:</strong> ${formatWindDirection(station.wind_direction)}</p>
-              <p style="margin:2px 0;color:#ff6b35;"><strong>🌡️ 기온:</strong> ${formatValue(station.temperature, "°C")}</p>
-              <p style="margin:2px 0;color:#007bff;"><strong>💧 습도:</strong> ${formatValue(station.humidity, "%")}</p>
-              <p style="margin:2px 0;color:#6c757d;"><strong>🔘 기압:</strong> ${formatValue(station.pressure, " hPa")}</p>
-            </div>
-            <div style="margin-top:6px;padding-top:4px;border-top:1px solid #eee;">
-              <p style="margin:2px 0;color:#666;font-size:11px;"><strong>관측시각:</strong> ${formatDateTime(station.observed_at)}</p>
-              <p style="margin:2px 0;color:#666;font-size:11px;">지상 기상 관측소</p>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      const infoWindow = new kakao.maps.InfoWindow({
-        content: infoContent
-      });
-      
-      kakao.maps.event.addListener(marker, 'click', () => {
-        if (infoWindowRef.current) {
-          infoWindowRef.current.close();
-        }
-        infoWindow.open(mapRef.current, marker);
-        infoWindowRef.current = infoWindow;
-      });
-      
-      surfaceMarkersRef.current.push(marker);
-      validMarkerCount++;
-      
-      if (validMarkerCount <= 3) {
-        console.log(`✅ Created surface marker ${validMarkerCount}: ${station.station_name || station.station_id} at (${lat}, ${lng})`);
-      }
-    });
-    
-    console.log(`🏢 Successfully created ${validMarkerCount} surface markers out of ${surfaceStations.length} stations`);
-  };
 
   // 지역 선택 핸들러
   const handleRegionSelect = (region) => {
@@ -584,11 +452,154 @@ export default function MapView({ onRegionSelect }) {
 
   // 지상관측소 마커 표시
   useEffect(() => {
-    if (surfaceStations.length > 0) {
-      console.log("🔄 Triggering surface station marker display...");
-      displaySurfaceStations();
+    
+    if (!showSurfaceStations) {
+      // 지상관측소 표시가 꺼진 경우 모든 마커 제거
+      surfaceMarkersRef.current.forEach(marker => marker.setMap(null));
+      surfaceMarkersRef.current = [];
+      setSurfaceMarkerCount(0);
+      return;
     }
-  }, [surfaceStations, showSurfaceStations]);
+    
+    if (surfaceStations.length > 0 && mapRef.current && window.kakao && showSurfaceStations) {
+      console.log("🔄 Triggering surface station marker display...");
+      
+      const { kakao } = window;
+      
+      // 기존 지상관측소 마커 제거
+      surfaceMarkersRef.current.forEach(marker => marker.setMap(null));
+      surfaceMarkersRef.current = [];
+      setSurfaceMarkerCount(0);
+      
+      console.log(`🏢 Displaying ${surfaceStations.length} surface stations`);
+      
+      let validMarkerCount = 0;
+      let invalidCoordCount = 0;
+      let outsideKoreaCount = 0;
+      
+      surfaceStations.forEach((station, index) => {
+        const lat = parseFloat(station.lat);
+        const lng = parseFloat(station.lon);
+        
+        
+        if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+          invalidCoordCount++;
+          if (index < 5) {
+            console.log(`⚠️ Invalid coordinates for surface station ${index}: lat=${lat}, lng=${lng}`);
+          }
+          return;
+        }
+        
+        // 한국 영역 내 좌표인지 확인
+        if (lat < 33 || lat > 43 || lng < 124 || lng > 132) {
+          outsideKoreaCount++;
+          if (index < 5) {
+            console.log(`⚠️ Coordinates outside Korea for surface station ${index}: lat=${lat}, lng=${lng}`);
+          }
+          return;
+        }
+        
+        const position = new kakao.maps.LatLng(lat, lng);
+        
+        // 지상관측소 전용 마커 이미지 (빨간색 삼각형)
+        const markerImage = new kakao.maps.MarkerImage(
+          'data:image/svg+xml;base64,' + btoa(`
+            <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+              <polygon points="10,2 18,16 2,16" fill="#dc3545" stroke="white" stroke-width="2"/>
+              <circle cx="10" cy="12" r="2" fill="white"/>
+            </svg>
+          `),
+          new kakao.maps.Size(20, 20),
+          {
+            offset: new kakao.maps.Point(10, 10)
+          }
+        );
+        
+        const marker = new kakao.maps.Marker({
+          position: position,
+          map: mapRef.current,
+          image: markerImage
+        });
+        
+        // 지상관측소 정보창
+        const formatValue = (value, unit = "") => {
+          if (value === null || value === undefined) return "N/A";
+          if (value === -9 || value === -9.0 || value === -99 || value === -99.0) return "결측";
+          return `${value}${unit}`;
+        };
+
+        const formatWindDirection = (windDir) => {
+          if (windDir === null || windDir === undefined || windDir === -9 || windDir === -9.0) return "결측";
+          const directions = ["북", "북북동", "북동", "동북동", "동", "동남동", "남동", "남남동", 
+                            "남", "남남서", "남서", "서남서", "서", "서북서", "북서", "북북서"];
+          const index = Math.round(windDir / 22.5) % 16;
+          return `${directions[index]} (${windDir}°)`;
+        };
+
+        const formatDateTime = (datetime) => {
+          if (!datetime) return "N/A";
+          // YYYYMMDDHHMM 형식을 YYYY-MM-DD HH:MM 형식으로 변환
+          const year = datetime.substring(0, 4);
+          const month = datetime.substring(4, 6);
+          const day = datetime.substring(6, 8);
+          const hour = datetime.substring(8, 10);
+          const minute = datetime.substring(10, 12);
+          return `${year}-${month}-${day} ${hour}:${minute}`;
+        };
+
+        const infoContent = `
+          <div style="padding:12px;min-width:300px;max-width:350px;font-family:Arial,sans-serif;">
+            <h4 style="margin:0 0 8px 0;color:#dc3545;font-size:14px;font-weight:bold;">
+              🏢 ${station.station_name || `지상관측소 ${station.station_id}`}
+            </h4>
+            <div style="font-size:12px;line-height:1.4;color:#333;">
+              <div style="margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #eee;">
+                <p style="margin:2px 0;"><strong>관측소 ID:</strong> ${station.station_id}</p>
+                <p style="margin:2px 0;"><strong>영문명:</strong> ${station.station_name_en || "N/A"}</p>
+                <p style="margin:2px 0;"><strong>위치:</strong> ${lat}°N, ${lng}°E</p>
+                <p style="margin:2px 0;"><strong>관측소 코드:</strong> ${station.station_code || "N/A"}</p>
+              </div>
+              <div style="margin-bottom:6px;">
+                <p style="margin:2px 0;color:#e74c3c;"><strong>💨 풍속:</strong> ${formatValue(station.wind_speed, " m/s")}</p>
+                <p style="margin:2px 0;color:#e74c3c;"><strong>🧭 풍향:</strong> ${formatWindDirection(station.wind_direction)}</p>
+                <p style="margin:2px 0;color:#ff6b35;"><strong>🌡️ 기온:</strong> ${formatValue(station.temperature, "°C")}</p>
+                <p style="margin:2px 0;color:#007bff;"><strong>💧 습도:</strong> ${formatValue(station.humidity, "%")}</p>
+                <p style="margin:2px 0;color:#6c757d;"><strong>🔘 기압:</strong> ${formatValue(station.pressure, " hPa")}</p>
+              </div>
+              <div style="margin-top:6px;padding-top:4px;border-top:1px solid #eee;">
+                <p style="margin:2px 0;color:#666;font-size:11px;"><strong>관측시각:</strong> ${formatDateTime(station.observed_at)}</p>
+                <p style="margin:2px 0;color:#666;font-size:11px;">지상 기상 관측소</p>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        const infoWindow = new kakao.maps.InfoWindow({
+          content: infoContent
+        });
+        
+        kakao.maps.event.addListener(marker, 'click', () => {
+          if (infoWindowRef.current) {
+            infoWindowRef.current.close();
+          }
+          infoWindow.open(mapRef.current, marker);
+          infoWindowRef.current = infoWindow;
+        });
+        
+        surfaceMarkersRef.current.push(marker);
+        validMarkerCount++;
+        
+        if (validMarkerCount <= 3) {
+          console.log(`✅ Created surface marker ${validMarkerCount}: ${station.station_name || station.station_id} at (${lat}, ${lng})`);
+        }
+      });
+      
+      console.log(`🏢 Successfully created ${validMarkerCount} surface markers out of ${surfaceStations.length} stations`);
+      
+      // UI 업데이트를 위해 state 업데이트
+      setSurfaceMarkerCount(validMarkerCount);
+    }
+  }, [surfaceStations, showSurfaceStations, loaded]);
 
   // 컴포넌트 마운트 시 데이터 로드
   useEffect(() => {
@@ -787,7 +798,7 @@ export default function MapView({ onRegionSelect }) {
           <div style={{ fontSize: "12px", opacity: 0.8 }}>
             관광지: <strong style={{ color: "#28a745" }}>{touristMarkersRef.current.length}개</strong> | 
             해양: <strong style={{ color: "#1976d2" }}>{marineMarkersRef.current.length}개</strong> | 
-            지상: <strong style={{ color: "#dc3545" }}>{surfaceMarkersRef.current.length}개</strong>
+            지상: <strong style={{ color: "#dc3545" }}>{surfaceMarkerCount}개</strong>
           </div>
         </div>
       </div>
@@ -805,11 +816,11 @@ export default function MapView({ onRegionSelect }) {
           fontSize: 14
         }}>
           🔄 {(touristSpotsLoading && marineStationsLoading && surfaceStationsLoading) ? "데이터 로딩 중..." : 
-               (touristSpotsLoading && marineStationsLoading) ? "관광지·해양 로딩 중..." :
-               (touristSpotsLoading && surfaceStationsLoading) ? "관광지·지상 로딩 중..." :
-               (marineStationsLoading && surfaceStationsLoading) ? "해양·지상 로딩 중..." :
-               touristSpotsLoading ? "관광지 정보 로딩 중..." : 
-               marineStationsLoading ? "해양관측소 정보 로딩 중..." : "지상관측소 정보 로딩 중..."}
+              (touristSpotsLoading && marineStationsLoading) ? "관광지·해양 로딩 중..." :
+              (touristSpotsLoading && surfaceStationsLoading) ? "관광지·지상 로딩 중..." :
+              (marineStationsLoading && surfaceStationsLoading) ? "해양·지상 로딩 중..." :
+              touristSpotsLoading ? "관광지 정보 로딩 중..." : 
+              marineStationsLoading ? "해양관측소 정보 로딩 중..." : "지상관측소 정보 로딩 중..."}
         </div>
       )}
       

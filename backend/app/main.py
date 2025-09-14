@@ -87,6 +87,9 @@ async def get_surface_stations_with_observations(
         
         # 관측소 정보와 관측 데이터를 결합
         combined_stations = []
+        matched_count = 0
+        unmatched_stations = []
+        
         for station in stations_info:
             station_id = station["station_id"]
             
@@ -95,6 +98,7 @@ async def get_surface_stations_with_observations(
             
             # 해당 관측소의 실시간 관측 데이터가 있으면 추가
             if station_id in obs_dict:
+                matched_count += 1
                 obs_data = obs_dict[station_id]
                 combined_station.update({
                     "wind_direction": obs_data.get("wind_direction"),
@@ -106,6 +110,8 @@ async def get_surface_stations_with_observations(
                     "wave_height": obs_data.get("wave_height"),
                     "observed_at": obs_data.get("datetime")
                 })
+            else:
+                unmatched_stations.append(station_id)
             
             combined_stations.append(combined_station)
         

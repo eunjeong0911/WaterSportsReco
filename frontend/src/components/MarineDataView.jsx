@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getSurfaceObservations, getMarineStations } from "../api/client";
+import { getSurfaceObservations, getSurfaceStations, getMarineStations } from "../api/client";
 
 export default function MarineDataView() {
   const [surfaceData, setSurfaceData] = useState([]);
@@ -14,9 +14,9 @@ export default function MarineDataView() {
     setError(null);
     try {
       console.log("Fetching KMA surface observations...");
-      const data = await getSurfaceObservations();
-      console.log("Surface observations loaded:", data);
-      setSurfaceData(data.observations || []);
+      const data = await getSurfaceStations();
+      console.log("Surface stations with observations loaded:", data);
+      setSurfaceData(data.stations || []);
     } catch (e) {
       console.error("❌ Failed to fetch surface data:", e);
       setError("지상 관측 데이터를 가져올 수 없습니다: " + e.message);
@@ -82,10 +82,13 @@ export default function MarineDataView() {
               backgroundColor: "#f8f9fa"
             }}>
               <h5 style={{ margin: "0 0 8px 0", color: "#007bff", fontSize: "13px" }}>
-                관측소 {obs.station_id}
+                {obs.station_name || `관측소 ${obs.station_id}`}
               </h5>
               <div style={{ fontSize: "12px", lineHeight: "1.6" }}>
-                <div><strong>관측시각:</strong> {obs.datetime || "N/A"}</div>
+                <div><strong>관측소 ID:</strong> {obs.station_id}</div>
+                <div><strong>위도:</strong> {formatValue(obs.lat, "°")}</div>
+                <div><strong>경도:</strong> {formatValue(obs.lon, "°")}</div>
+                <div><strong>관측시각:</strong> {obs.observed_at || obs.datetime || "N/A"}</div>
                 <div><strong>기온:</strong> {formatValue(obs.temperature, "°C")}</div>
                 <div><strong>습도:</strong> {formatValue(obs.humidity, "%")}</div>
                 <div><strong>기압:</strong> {formatValue(obs.pressure, " hPa")}</div>
