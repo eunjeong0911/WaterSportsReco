@@ -21,14 +21,6 @@ const REGIONS = [
   { id: "제주", label: "제주", description: "제주특별자치도" }
 ];
 
-const MARINE_INFO = [
-  { id: "marine_info", label: "해양정보", description: "풍향, 풍속, 기온, 강수량, 파고" }
-];
-
-const TOURIST_SPOTS = [
-  { id: "tourist_spots", label: "전체 수상레포츠", description: "모든 수상레포츠 관광지 정보" }
-];
-
 const WATERSPORTS_CATEGORIES = [
   { id: "A03030100", label: "윈드서핑/제트스키", description: "윈드서핑과 제트스키 체험장 및 관련 시설" },
   { id: "A03030200", label: "카약/카누", description: "카약, 카누 체험장 및 대여소" },
@@ -40,21 +32,13 @@ const WATERSPORTS_CATEGORIES = [
   { id: "A03030800", label: "래프팅", description: "래프팅 체험장 및 관련 시설" }
 ];
 
-export default function ActivityFilter({ selectedRegion, selectedActivity, onActivitySelect, onRegionSelect, selectedWaterSport, onWaterSportSelect }) {
-  const [activeTab, setActiveTab] = useState("tourist"); // regions 제거, tourist가 기본
+export default function ActivityFilter({ selectedRegion, onRegionSelect, selectedWaterSport, onWaterSportSelect }) {
   const [isRegionOpen, setIsRegionOpen] = useState(false);
-  const [isMarineOpen, setIsMarineOpen] = useState(false);
-  const [isTouristOpen, setIsTouristOpen] = useState(false);
   const [isWaterSportOpen, setIsWaterSportOpen] = useState(false);
 
   const handleRegionSelect = (regionId) => {
     onRegionSelect(regionId);
     setIsRegionOpen(false);
-  };
-
-  const handleActivitySelect = (activityId) => {
-    onActivitySelect(activityId);
-    setIsTouristOpen(false);
   };
 
   const handleWaterSportSelect = (waterSportId) => {

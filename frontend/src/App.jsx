@@ -6,7 +6,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 
 export default function App() {
-  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState("전체");
   
   return (
     <div style={{ 
@@ -30,7 +30,7 @@ export default function App() {
           overflow: "hidden",
           minWidth: 0  // flex 아이템이 축소될 수 있도록
         }}>
-          <MapView onRegionSelect={setSelectedRegion} />
+          <MapView selectedRegion={selectedRegion} onRegionSelect={setSelectedRegion} />
           
           {/* 해양 데이터 패널 */}
           <div style={{
