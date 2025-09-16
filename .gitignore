@@ -1,6 +1,50 @@
-/backend/.env
-/frontend/.env
-/backend/.venv/
-/backend/app/__pycache__/
-/backend/__pycache__/
-/backend/app/services/__pycache__/
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Python
+*__pycache__/
+
+# Build outputs
+build/
+dist/
+frontend/dist/
+frontend/build/
+
+# Environment variables
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Models (optional - 팀에서 결정)
+backend/models/*.pkl
+backend/models/*.joblib
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.temp
+
+# Data
+*.csv
+
+# venv
+*venv/
