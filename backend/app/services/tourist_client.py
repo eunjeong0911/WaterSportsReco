@@ -133,6 +133,9 @@ async def fetch_tourist_spots(
     area_code: Optional[str] = None,
     sigungu_code: Optional[str] = None,
     content_type_id: str = "28",
+    cat1: Optional[str] = "A03",
+    cat2: Optional[str] = "A0303", 
+    cat3: Optional[str] = None,
     num_of_rows: int = 476,
     page_no: int = 1
 ) -> List[Dict[str, Any]]:
@@ -146,10 +149,16 @@ async def fetch_tourist_spots(
         "MobileApp": "AppTest",
         "ServiceKey": TOURIST_API_KEY,
         "arrange": "A",
-        "contentTypeId": content_type_id,
-        "cat1": "A03",
-        "cat2": "A0303"
+        "contentTypeId": content_type_id
     }
+    
+    # 카테고리 파라미터들을 동적으로 추가
+    if cat1:
+        params["cat1"] = cat1
+    if cat2:
+        params["cat2"] = cat2
+    if cat3:
+        params["cat3"] = cat3
     
     if area_code:
         params["areaCode"] = area_code

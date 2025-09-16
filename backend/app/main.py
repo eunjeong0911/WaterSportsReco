@@ -131,6 +131,9 @@ async def get_tourist_spots(
     area_code: str | None = Query(None, description="지역 코드"),
     sigungu_code: str | None = Query(None, description="시군구 코드"),
     content_type_id: str = Query("28", description="콘텐츠 타입 ID"),
+    cat1: str | None = Query("A03", description="대분류 카테고리"),
+    cat2: str | None = Query("A0303", description="중분류 카테고리"),
+    cat3: str | None = Query(None, description="소분류 카테고리"),
     num_of_rows: int = Query(476, description="한 번에 가져올 결과 수"),  # 원래대로 476개
     page_no: int = Query(1, description="페이지 번호"),
     client: httpx.AsyncClient = Depends(get_http_client),
@@ -141,6 +144,9 @@ async def get_tourist_spots(
             area_code=area_code,
             sigungu_code=sigungu_code,
             content_type_id=content_type_id,
+            cat1=cat1,
+            cat2=cat2,
+            cat3=cat3,
             num_of_rows=num_of_rows,
             page_no=page_no
         )

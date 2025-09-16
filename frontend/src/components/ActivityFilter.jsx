@@ -26,14 +26,26 @@ const MARINE_INFO = [
 ];
 
 const TOURIST_SPOTS = [
-  { id: "tourist_spots", label: "관광지", description: "한국관광공사 관광지 정보" }
+  { id: "tourist_spots", label: "전체 수상레포츠", description: "모든 수상레포츠 관광지 정보" }
 ];
 
-export default function ActivityFilter({ selectedRegion, selectedActivity, onActivitySelect, onRegionSelect }) {
+const WATERSPORTS_CATEGORIES = [
+  { id: "A03030100", label: "윈드서핑/제트스키", description: "윈드서핑과 제트스키 체험장 및 관련 시설" },
+  { id: "A03030200", label: "카약/카누", description: "카약, 카누 체험장 및 대여소" },
+  { id: "A03030300", label: "요트", description: "요트 체험 및 마리나 시설" },
+  { id: "A03030400", label: "스노쿨링/스킨스쿠버다이빙", description: "스노쿨링 및 스쿠버다이빙 체험" },
+  { id: "A03030500", label: "민물낚시", description: "민물낚시터 및 관련 시설" },
+  { id: "A03030600", label: "바다낚시", description: "바다낚시 및 선상낚시 체험" },
+  { id: "A03030700", label: "수영", description: "수영장 및 해수욕장 시설" },
+  { id: "A03030800", label: "래프팅", description: "래프팅 체험장 및 관련 시설" }
+];
+
+export default function ActivityFilter({ selectedRegion, selectedActivity, onActivitySelect, onRegionSelect, selectedWaterSport, onWaterSportSelect }) {
   const [activeTab, setActiveTab] = useState("tourist"); // regions 제거, tourist가 기본
   const [isRegionOpen, setIsRegionOpen] = useState(false);
   const [isMarineOpen, setIsMarineOpen] = useState(false);
   const [isTouristOpen, setIsTouristOpen] = useState(false);
+  const [isWaterSportOpen, setIsWaterSportOpen] = useState(false);
 
   const handleRegionSelect = (regionId) => {
     onRegionSelect(regionId);
@@ -43,6 +55,11 @@ export default function ActivityFilter({ selectedRegion, selectedActivity, onAct
   const handleActivitySelect = (activityId) => {
     onActivitySelect(activityId);
     setIsTouristOpen(false);
+  };
+
+  const handleWaterSportSelect = (waterSportId) => {
+    onWaterSportSelect(waterSportId);
+    setIsWaterSportOpen(false);
   };
 
   const getSelectedRegionLabel = () => {
@@ -55,52 +72,80 @@ export default function ActivityFilter({ selectedRegion, selectedActivity, onAct
       return selectedRegionInfo.description;
   };
 
+  const getSelectedWaterSportLabel = () => {
+      if (!selectedWaterSport) return "전체 수상레포츠";
+      const selectedWaterSportInfo = WATERSPORTS_CATEGORIES.find(w => w.id === selectedWaterSport);
+      return selectedWaterSportInfo ? selectedWaterSportInfo.label : "전체 수상레포츠";
+  };
+
+  const getSelectedWaterSportDescription = () => {
+      if (!selectedWaterSport) return "모든 수상레포츠 관광지 정보";
+      const selectedWaterSportInfo = WATERSPORTS_CATEGORIES.find(w => w.id === selectedWaterSport);
+      return selectedWaterSportInfo ? selectedWaterSportInfo.description : "모든 수상레포츠 관광지 정보";
+  };
+
   return (
-    <div>
-      {/* 지역 선택 박스 */}
     <div style={{
       position: "absolute",
       top: "20px",
-      left: "220px",
-      backgroundColor: "white",
-      borderRadius: "8px",
-      boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-      zIndex: 10,
-      minWidth: "320px"
+      left: "20px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "12px",
+      zIndex: 100
     }}>
-        {/* 지역 선택 헤더 */}
+      {/* 지역 선택 박스 */}
       <div style={{
-        padding: "12px 15px",
-        borderBottom: "1px solid #eee",
-        fontWeight: "bold",
-        fontSize: "14px",
-        color: "#333",
+        backgroundColor: "white",
+        borderRadius: "8px",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+        minWidth: "280px",
+        maxWidth: "300px"
+      }}>
+        {/* 지역 선택 헤더 */}
+        <div style={{
+          padding: "10px 15px",
           backgroundColor: "#007bff",
           color: "white",
-          borderRadius: "8px 8px 0 0"
+          borderRadius: "8px 8px 0 0",
+          fontSize: "13px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
         }}>
-          지역 선택
+          🌍 지역 선택
         </div>
 
         {/* 지역 드롭다운 */}
-        <div style={{ padding: "10px 15px" }}>
-        <div style={{ position: "relative" }}>
-          <button
+        <div style={{ padding: "12px 15px" }}>
+          <div style={{ position: "relative" }}>
+            <button
               onClick={() => setIsRegionOpen(!isRegionOpen)}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              backgroundColor: "white",
-              cursor: "pointer",
-              fontSize: "14px",
-              textAlign: "left",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
-            }}
-          >
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                border: "1px solid #e1e5e9",
+                borderRadius: "8px",
+                backgroundColor: "white",
+                cursor: "pointer",
+                fontSize: "14px",
+                textAlign: "left",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = "#007bff";
+                e.target.style.boxShadow = "0 2px 8px rgba(0,123,255,0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = "#e1e5e9";
+                e.target.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
+              }}
+            >
             <div>
               <div style={{ fontWeight: "500", color: "#333" }}>
                   {getSelectedRegionLabel()}
@@ -110,43 +155,46 @@ export default function ActivityFilter({ selectedRegion, selectedActivity, onAct
                 </div>
             </div>
             <span style={{ 
-              color: "#999", 
-                transform: isRegionOpen ? "rotate(180deg)" : "rotate(0deg)",
-              transition: "transform 0.2s"
+              color: "#6c757d", 
+              transform: isRegionOpen ? "rotate(180deg)" : "rotate(0deg)",
+              transition: "transform 0.2s ease",
+              fontSize: "12px",
+              fontWeight: "600"
             }}>
               ▼
             </span>
           </button>
 
             {isRegionOpen && (
-            <div style={{
-              position: "absolute",
-              top: "100%",
-              left: 0,
-              right: 0,
-              backgroundColor: "white",
-              border: "1px solid #ddd",
-              borderRadius: "6px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                zIndex: 20,
-                maxHeight: "200px",
-              overflowY: "auto",
-              marginTop: "4px"
-            }}>
+              <div style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                right: 0,
+                backgroundColor: "white",
+                border: "1px solid #e1e5e9",
+                borderRadius: "8px",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                maxHeight: "240px",
+                overflowY: "auto",
+                marginTop: "6px"
+              }}>
                 {REGIONS.map(region => (
                 <button
                   key={region.id}
                   onClick={() => handleRegionSelect(region.id)}
                   style={{
                     width: "100%",
-                      padding: "10px 12px",
+                    padding: "12px 14px",
                     border: "none",
-                      backgroundColor: selectedRegion === region.id ? "#f0f8ff" : "transparent",
+                    backgroundColor: selectedRegion === region.id ? "#e3f2fd" : "transparent",
                     cursor: "pointer",
-                      fontSize: "13px",
+                    fontSize: "14px",
                     textAlign: "left",
-                      color: selectedRegion === region.id ? "#007bff" : "#333",
-                    borderBottom: "1px solid #f0f0f0"
+                    color: selectedRegion === region.id ? "#1976d2" : "#333",
+                    borderBottom: "1px solid #f5f5f5",
+                    transition: "all 0.15s ease"
                   }}
                   onMouseEnter={(e) => {
                     if (selectedRegion !== region.id) {
@@ -171,223 +219,161 @@ export default function ActivityFilter({ selectedRegion, selectedActivity, onAct
         </div>
       </div>
 
-      {/* 해양정보 박스 */}
+
+      {/* 수상레포츠 카테고리 박스 */}
       <div style={{
-        position: "absolute",
-        top: "140px", // 지역 선택 박스 아래에 배치
-        left: "220px",
         backgroundColor: "white",
         borderRadius: "8px",
         boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-        zIndex: 10,
-        minWidth: "320px"
+        minWidth: "280px",
+        maxWidth: "300px"
       }}>
-        {/* 해양정보 헤더 */}
+        {/* 수상레포츠 카테고리 헤더 */}
         <div style={{
-          padding: "12px 15px",
-          borderBottom: "1px solid #eee",
-          fontWeight: "bold",
-          fontSize: "14px",
-          color: "#333",
-          backgroundColor: "#17a2b8",
+          padding: "10px 15px",
+          backgroundColor: "#6f42c1",
           color: "white",
-          borderRadius: "8px 8px 0 0"
+          borderRadius: "8px 8px 0 0",
+          fontSize: "13px",
+          fontWeight: "600",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px"
         }}>
-          해양정보
+          🏄‍♂️ 수상레포츠 카테고리
         </div>
 
-        {/* 해양정보 드롭다운 */}
-        <div style={{ padding: "10px 15px" }}>
+        {/* 수상레포츠 카테고리 드롭다운 */}
+        <div style={{ padding: "12px 15px" }}>
           <div style={{ position: "relative" }}>
             <button
-              onClick={() => setIsMarineOpen(!isMarineOpen)}
+              onClick={() => setIsWaterSportOpen(!isWaterSportOpen)}
               style={{
                 width: "100%",
-                padding: "10px 12px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
+                padding: "12px 14px",
+                border: "1px solid #e1e5e9",
+                borderRadius: "8px",
                 backgroundColor: "white",
                 cursor: "pointer",
                 fontSize: "14px",
                 textAlign: "left",
                 display: "flex",
                 justifyContent: "space-between",
-                alignItems: "center"
+                alignItems: "center",
+                transition: "all 0.2s ease",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = "#6f42c1";
+                e.target.style.boxShadow = "0 2px 8px rgba(111,66,193,0.15)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = "#e1e5e9";
+                e.target.style.boxShadow = "0 1px 3px rgba(0,0,0,0.1)";
               }}
             >
               <div>
                 <div style={{ fontWeight: "500", color: "#333" }}>
-                  해양정보
+                  {getSelectedWaterSportLabel()}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>
-                  풍향, 풍속, 기온, 강수량, 파고
+                  {getSelectedWaterSportDescription()}
                 </div>
               </div>
               <span style={{ 
-                color: "#999", 
-                transform: isMarineOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s"
+                color: "#6c757d", 
+                transform: isWaterSportOpen ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease",
+                fontSize: "12px",
+                fontWeight: "600"
               }}>
                 ▼
               </span>
             </button>
 
-            {isMarineOpen && (
+            {isWaterSportOpen && (
               <div style={{
                 position: "absolute",
                 top: "100%",
                 left: 0,
                 right: 0,
                 backgroundColor: "white",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                zIndex: 20,
-                marginTop: "4px"
+                border: "1px solid #e1e5e9",
+                borderRadius: "8px",
+                boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                maxHeight: "280px",
+                overflowY: "auto",
+                marginTop: "6px"
               }}>
-                {MARINE_INFO.map(marine => (
+                {/* 전체 수상레포츠 옵션 */}
                 <button
-                    key={marine.id}
-                    onClick={() => onActivitySelect(marine.id)}
+                  onClick={() => handleWaterSportSelect(null)}
                   style={{
                     width: "100%",
-                      padding: "10px 12px",
+                    padding: "12px 14px",
                     border: "none",
-                      backgroundColor: selectedActivity === marine.id ? "#f0f8ff" : "transparent",
+                    backgroundColor: !selectedWaterSport ? "#f3e5f5" : "transparent",
                     cursor: "pointer",
-                      fontSize: "13px",
+                    fontSize: "14px",
                     textAlign: "left",
-                      color: selectedActivity === marine.id ? "#17a2b8" : "#333"
+                    color: !selectedWaterSport ? "#4a148c" : "#333",
+                    borderBottom: "1px solid #f5f5f5",
+                    transition: "all 0.15s ease"
                   }}
                   onMouseEnter={(e) => {
-                      if (selectedActivity !== marine.id) {
+                    if (selectedWaterSport !== null) {
+                      e.target.style.backgroundColor = "#f8f9fa";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedWaterSport !== null) {
+                      e.target.style.backgroundColor = "transparent";
+                    }
+                  }}
+                >
+                  <div style={{ fontWeight: "500" }}>전체 수상레포츠</div>
+                  <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
+                    모든 수상레포츠 관광지 정보
+                  </div>
+                </button>
+
+                {/* 세부 카테고리 옵션들 */}
+                {WATERSPORTS_CATEGORIES.map(waterSport => (
+                <button
+                    key={waterSport.id}
+                    onClick={() => handleWaterSportSelect(waterSport.id)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "none",
+                    backgroundColor: selectedWaterSport === waterSport.id ? "#f3e5f5" : "transparent",
+                    cursor: "pointer",
+                    fontSize: "14px",
+                    textAlign: "left",
+                    color: selectedWaterSport === waterSport.id ? "#4a148c" : "#333",
+                    borderBottom: "1px solid #f5f5f5",
+                    transition: "all 0.15s ease"
+                  }}
+                  onMouseEnter={(e) => {
+                      if (selectedWaterSport !== waterSport.id) {
                         e.target.style.backgroundColor = "#f8f9fa";
                     }
                   }}
                   onMouseLeave={(e) => {
-                      if (selectedActivity !== marine.id) {
+                      if (selectedWaterSport !== waterSport.id) {
                         e.target.style.backgroundColor = "transparent";
                       }
                     }}
                   >
-                    <div style={{ fontWeight: "500" }}>{marine.label}</div>
+                    <div style={{ fontWeight: "500" }}>{waterSport.label}</div>
                     <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
-                      {marine.description}
+                      {waterSport.description}
                   </div>
                 </button>
               ))}
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* 관광지 박스 */}
-      <div style={{
-        position: "absolute",
-        top: "260px", // 해양정보 박스 아래에 배치
-        left: "220px",
-        backgroundColor: "white",
-        borderRadius: "8px",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-        zIndex: 10,
-        minWidth: "320px"
-      }}>
-        {/* 관광지 헤더 */}
-        <div style={{
-          padding: "12px 15px",
-          borderBottom: "1px solid #eee",
-          fontWeight: "bold",
-          fontSize: "14px",
-          backgroundColor: "#28a745",
-          color: "white",
-          borderRadius: "8px 8px 0 0"
-        }}>
-          관광지
-        </div>
-
-        {/* 관광지 드롭다운 */}
-        <div style={{ padding: "10px 15px" }}>
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setIsTouristOpen(!isTouristOpen)}
-              style={{
-                width: "100%",
-                padding: "10px 12px",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                backgroundColor: "white",
-                cursor: "pointer",
-                fontSize: "14px",
-                textAlign: "left",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center"
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: "500", color: "#333" }}>
-                  관광지
-                </div>
-                <div style={{ fontSize: "12px", color: "#666", marginTop: "2px" }}>
-                  한국관광공사 관광지 정보
-                </div>
-              </div>
-              <span style={{ 
-                color: "#999", 
-                transform: isTouristOpen ? "rotate(180deg)" : "rotate(0deg)",
-                transition: "transform 0.2s"
-              }}>
-                ▼
-              </span>
-            </button>
-
-            {isTouristOpen && (
-              <div style={{
-                position: "absolute",
-                top: "100%",
-                left: 0,
-                right: 0,
-                backgroundColor: "white",
-                border: "1px solid #ddd",
-                borderRadius: "6px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                zIndex: 20,
-                marginTop: "4px"
-              }}>
-                {TOURIST_SPOTS.map(tourist => (
-                <button
-                    key={tourist.id}
-                    onClick={() => handleActivitySelect(tourist.id)}
-                  style={{
-                    width: "100%",
-                      padding: "10px 12px",
-                    border: "none",
-                      backgroundColor: selectedActivity === tourist.id ? "#f0f8ff" : "transparent",
-                    cursor: "pointer",
-                      fontSize: "13px",
-                    textAlign: "left",
-                      color: selectedActivity === tourist.id ? "#28a745" : "#333"
-                  }}
-                  onMouseEnter={(e) => {
-                      if (selectedActivity !== tourist.id) {
-                        e.target.style.backgroundColor = "#f8f9fa";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                      if (selectedActivity !== tourist.id) {
-                        e.target.style.backgroundColor = "transparent";
-                      }
-                    }}
-                  >
-                    <div style={{ fontWeight: "500" }}>{tourist.label}</div>
-                    <div style={{ fontSize: "11px", color: "#666", marginTop: "2px" }}>
-                      {tourist.description}
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
           </div>
         </div>
       </div>

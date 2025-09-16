@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import useKakaoLoader from "../hooks/useKakaoLoader";
 import { getTouristSpots, getMarineStations, getSurfaceStations } from "../api/client";
+import ActivityFilter from "./ActivityFilter";
 
 const KAKAO_APPKEY = import.meta.env.VITE_KAKAO_APPKEY;
 
@@ -20,6 +21,8 @@ export default function MapView({ onRegionSelect }) {
   const [surfaceStationsLoading, setSurfaceStationsLoading] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState("전체");
   const [availableRegions, setAvailableRegions] = useState(["전체"]);
+  const [selectedActivity, setSelectedActivity] = useState("tourist_spots");
+  const [selectedWaterSport, setSelectedWaterSport] = useState(null);
   const [showMarineStations, setShowMarineStations] = useState(true);
   const [showSurfaceStations, setShowSurfaceStations] = useState(true);
   const [surfaceMarkerCount, setSurfaceMarkerCount] = useState(0);
@@ -29,7 +32,15 @@ export default function MapView({ onRegionSelect }) {
     setTouristSpotsLoading(true);
     try {
       console.log("🔄 Fetching tourist spots...");
-      const data = await getTouristSpots();
+      
+      // API 파라미터 구성
+      const params = {};
+      if (selectedWaterSport) {
+        params.cat3 = selectedWaterSport;
+      }
+      
+      console.log("📋 API params:", params);
+      const data = await getTouristSpots(params);
       const spots = data?.tourist_spots || [];
       console.log(`✅ Loaded ${spots.length} tourist spots`);
       
@@ -611,6 +622,13 @@ export default function MapView({ onRegionSelect }) {
     }
   }, [loaded]);
 
+  // 수상레포츠 카테고리가 변경될 때 데이터 다시 가져오기
+  useEffect(() => {
+    if (loaded) {
+      fetchTouristSpots();
+    }
+  }, [selectedWaterSport]);
+
   if (!KAKAO_APPKEY) {
     return (
       <div style={{ 
@@ -679,11 +697,21 @@ export default function MapView({ onRegionSelect }) {
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
       
+      {/* 활동 필터 */}
+      <ActivityFilter
+        selectedRegion={selectedRegion}
+        selectedActivity={selectedActivity}
+        selectedWaterSport={selectedWaterSport}
+        onRegionSelect={setSelectedRegion}
+        onActivitySelect={setSelectedActivity}
+        onWaterSportSelect={setSelectedWaterSport}
+      />
+      
       {/* 지역 선택 및 관광지 정보 */}
       <div style={{
         position: "absolute",
         top: "20px",
-        left: "20px",
+        left: "340px",
         backgroundColor: "white",
         borderRadius: "12px",
         boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
