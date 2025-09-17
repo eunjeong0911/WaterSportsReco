@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: water-sports-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: water_sports_db
+      MYSQL_USER: water_sports_user
+      MYSQL_PASSWORD: water_sports_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - water-sports-network
+
+  # 선택사항: phpMyAdmin (웹 기반 MySQL 관리 도구)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: water-sports-phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: water_sports_user
+      PMA_PASSWORD: water_sports_password
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - water-sports-network
+
+volumes:
+  mysql_data:
+
+networks:
+  water-sports-network:
+    driver: bridge

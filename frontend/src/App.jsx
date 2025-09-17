@@ -1,69 +1,37 @@
-import { useState } from "react";
-import MapView from "./components/MapView";
-import ChatWindow from "./components/ChatWindow";
-import MarineDataView from "./components/MarineDataView";
-import Header from "./components/Header";
-import Footer from "./components/Footer";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// 페이지 컴포넌트들
+import HomePage from './pages/HomePage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
-  const [selectedRegion, setSelectedRegion] = useState("전체");
-  
   return (
-    <div style={{ 
-      display: "flex", 
-      flexDirection: "column", 
-      height: "100vh",
-      overflow: "hidden"
-    }}>
-      <Header />
-      
-      <main style={{ 
-        flex: 1, 
-        display: "flex",
-        overflow: "hidden",
-        position: "relative"
-      }}>
-        {/* 왼쪽: 지도 */}
-        <div style={{ 
-          flex: 1,
-          position: "relative",
-          overflow: "hidden",
-          minWidth: 0  // flex 아이템이 축소될 수 있도록
-        }}>
-          <MapView selectedRegion={selectedRegion} onRegionSelect={setSelectedRegion} />
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* 공개 라우트 */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           
-          {/* 해양 데이터 패널 */}
-          <div style={{
-            position: "absolute",
-            top: "20px",
-            left: "320px",
-            width: "350px",
-            maxHeight: "500px",
-            backgroundColor: "white",
-            borderRadius: "12px",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-            zIndex: 10,
-            overflow: "hidden"
-          }}>
-            <MarineDataView />
-          </div>
-        </div>
-        
-        {/* 오른쪽: 채팅창 */}
-        <div style={{ 
-          width: "400px",
-          minWidth: "300px",
-          maxWidth: "500px",
-          borderLeft: "1px solid #ddd",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column"
-        }}>
-          <ChatWindow selectedRegion={selectedRegion} />
-        </div>
-      </main>
-      
-      <Footer />
-    </div>
+          {/* 보호된 라우트 */}
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+          
+          {/* 404 페이지 */}
+          <Route path="*" element={<div>페이지를 찾을 수 없습니다</div>} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }

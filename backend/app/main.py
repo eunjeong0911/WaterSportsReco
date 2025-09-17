@@ -1,23 +1,126 @@
-from fastapi import FastAPI, Depends, Query
+from fastapi import FastAPI, Depends, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import httpx
 import asyncio
-from .config import ALLOWED_ORIGINS, KAKAO_API_KEY, VITE_KAKAO_APPKEY
+import logging
+from contextlib import asynccontextmanager
+
+# 기존 imports
+from .config import get_settings, KAKAO_API_KEY, VITE_KAKAO_APPKEY
 from .deps import get_http_client
 
 from .services.kma_marine_client import fetch_all_stations
 from .services.kma_surface_client import fetch_surface_obs, fetch_surface_obs_by_station, fetch_surface_station_info
 from .services.tourist_client import fetch_tourist_spots, fetch_tourist_spot_by_id
 
-app = FastAPI(title="Marine Conditions API")
+# 인증 시스템 imports
+from .database import init_database, close_database
+from .routers import auth, users
+from .exceptions.auth_exceptions import AuthException
 
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+settings = get_settings()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """애플리케이션 생명주기 관리"""
+    # 시작 시
+    logger.info("🚀 Starting Water Sports Recommendation API")
+    try:
+        await init_database()
+        logger.info("✅ Database initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Database initialization failed: {e}")
+        raise
+    
+    yield
+    
+    # 종료 시
+    logger.info("🔄 Shutting down Water Sports Recommendation API")
+    try:
+        await close_database()
+        logger.info("✅ Database connections closed")
+    except Exception as e:
+        logger.error(f"❌ Database cleanup failed: {e}")
+
+app = FastAPI(
+    title="Water Sports Recommendation API",
+    description="해양레저 추천 플랫폼 API - 실시간 해양정보 및 사용자 인증",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS 미들웨어 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS or ["*"],
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+# 보안 헤더 미들웨어
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # 보안 헤더 추가
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # HTTPS에서만 Strict-Transport-Security 헤더 추가
+    if request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    return response
+
+# 전역 예외 핸들러
+@app.exception_handler(AuthException)
+async def auth_exception_handler(request: Request, exc: AuthException):
+    logger.warning(f"🔐 Auth exception: {exc.detail} - Path: {request.url.path}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.warning(f"⚠️ HTTP exception: {exc.detail} - Path: {request.url.path}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error(f"❌ Unexpected error: {str(exc)} - Path: {request.url.path}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "내부 서버 오류가 발생했습니다"}
+    )
+
+# 라우터 등록
+app.include_router(auth.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+
+# 헬스 체크 엔드포인트
+@app.get("/health")
+async def health_check():
+    """서버 상태 확인"""
+    return {
+        "status": "healthy",
+        "message": "Water Sports Recommendation API is running",
+        "version": "1.0.0"
+    }
 
 # 환경변수 확인 및 로깅
 print(f"🔑 KAKAO_API_KEY loaded: {'YES' if KAKAO_API_KEY else 'NO'} (length: {len(KAKAO_API_KEY) if KAKAO_API_KEY else 0})")
