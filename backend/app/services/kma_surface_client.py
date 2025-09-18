@@ -49,7 +49,7 @@ def _parse_surface_obs(text: str) -> List[Dict[str, Any]]:
             humidity = _to_float(parts[13])     # HM (습도)
             
             # 파고(WH) - 실제 데이터에서 확인된 위치
-            wave_height = None
+            # wave_height = None
             
             # 디버깅: 전체 필드 개수와 마지막 몇 개 필드 확인
             # print(f"🔍 Station {station_id}: Total fields = {len(parts)}")
@@ -71,7 +71,7 @@ def _parse_surface_obs(text: str) -> List[Dict[str, Any]]:
                 "pressure": pressure,
                 "temperature": temp,
                 "humidity": humidity,
-                "wave_height": wave_height,  # 파고 추가
+                "wave_height": wave_height, 
                 "source": "KMA_SURFACE"
             }
             stations.append(station)
@@ -130,7 +130,9 @@ async def fetch_surface_obs(
         stations = _parse_surface_obs(r.text)
         return stations
     except Exception as e:
-        print(f"❌ Error fetching surface observations: {e}")
+        print(f"❌ Error fetching surface observations: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -166,7 +168,7 @@ def _parse_station_info(text: str) -> List[Dict[str, Any]]:
     stations = []
     for line in data_lines:
         parts = line.split()
-        if len(parts) < 12:  # 최소 필요한 필드 수
+        if len(parts) < 12: 
             continue
         
         try:
@@ -210,8 +212,8 @@ async def fetch_surface_station_info(
     """
     url = "https://apihub.kma.go.kr/api/typ01/url/stn_inf.php"
     params = {
-        "inf": "SFC",  # 지상관측소
-        "stn": "",     # 빈 값으로 전체 관측소
+        "inf": "SFC", 
+        "stn": "",    
         "help": "1",
         "authKey": KMA_API_KEY
     }
@@ -239,7 +241,9 @@ async def fetch_surface_station_info(
         return stations
         
     except Exception as e:
-        print(f"❌ Error fetching surface station info: {e}")
+        print(f"❌ Error fetching surface station info: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 

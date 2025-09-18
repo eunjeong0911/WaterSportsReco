@@ -68,24 +68,7 @@ async def fetch_all_stations(client: httpx.AsyncClient, tm: str | None = None) -
         stations = _parse_sea_obs_all(r.text)
         return stations
     except Exception as e:
-        print(f"Error fetching marine stations: {e}")
+        print(f"Error fetching marine stations: {type(e).__name__}: {e}")
+        import traceback
+        traceback.print_exc()
         return []
-
-
-async def fetch_station_by_id(client: httpx.AsyncClient, station_id: str, tm: str | None = None) -> Dict[str, Any]:
-    """특정 해양 관측소 데이터를 가져옴"""
-    url = "https://apihub.kma.go.kr/api/typ01/url/sea_obs.php"
-    params = {"stn": station_id, "authKey": KMA_API_KEY}
-    if tm:
-        params["tm"] = tm
-
-    try:
-        r = await client.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        stations = _parse_sea_obs_all(r.text)
-        if stations:
-            return stations[0]
-        return {}
-    except Exception as e:
-        print(f"Error fetching marine station {station_id}: {e}")
-        return {}

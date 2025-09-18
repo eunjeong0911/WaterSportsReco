@@ -83,49 +83,13 @@ def _parse_tourist_data(text: str) -> List[Dict[str, Any]]:
         
     except ET.ParseError as e:
         print(f"XML parsing error: {e}")
-        # XML 파싱 실패 시 텍스트 기반 파싱 시도
-        return _parse_tourist_data_text(text)
+        return []
     except Exception as e:
         print(f"Unexpected error in tourist data parsing: {e}")
         return []
 
 
-def _parse_tourist_data_text(text: str) -> List[Dict[str, Any]]:
-    """
-    텍스트 기반 파싱 (XML 파싱 실패 시 사용)
-    """
-    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    
-    tourist_spots = []
-    for line in lines:
-        # API 응답이 공백으로 구분된 형태로 보임
-        parts = line.split()
-        if len(parts) < 10:
-            continue
-            
-        try:
-            # 응답 구조에 따라 파싱 (실제 응답 형식에 맞게 조정 필요)
-            tourist_spot = {
-                "content_id": parts[0] if len(parts) > 0 else "",
-                "title": parts[1] if len(parts) > 1 else "",
-                "address": parts[2] if len(parts) > 2 else "",
-                "lat": float(parts[3]) if len(parts) > 3 and parts[3].replace('.', '').replace('-', '').isdigit() else None,
-                "lon": float(parts[4]) if len(parts) > 4 and parts[4].replace('.', '').replace('-', '').isdigit() else None,
-                "category": parts[5] if len(parts) > 5 else "",
-                "image_url": parts[6] if len(parts) > 6 else "",
-                "description": parts[7] if len(parts) > 7 else "",
-                "source": "TOURIST"
-            }
-            
-            # 위경도가 유효한 경우만 포함
-            if tourist_spot["lat"] is not None and tourist_spot["lon"] is not None:
-                tourist_spots.append(tourist_spot)
-                
-        except (ValueError, IndexError) as e:
-            print(f"Error parsing tourist data line: {e}")
-            continue
-    
-    return tourist_spots
+
 
 
 async def fetch_tourist_spots(
@@ -201,8 +165,6 @@ async def fetch_tourist_spot_by_id(
         r = await client.get(url, params=params, timeout=10)
         r.raise_for_status()
         
-        # XML 응답을 파싱 (실제로는 XML 파서 사용 필요)
-        # 여기서는 간단한 텍스트 파싱 사용
         return {"content_id": content_id, "raw_response": r.text}
         
     except Exception as e:
